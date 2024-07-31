@@ -1,12 +1,15 @@
-FROM node:20
+# Dockerfile for Frontend
+FROM node:20-alpine
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY package.json package-lock.json ./
 RUN npm install
 
 COPY . .
 
+RUN yarn build
+
 EXPOSE 80
 
-CMD ["npm", "start"]
+CMD ["yarn", "start"]
