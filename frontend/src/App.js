@@ -1,49 +1,51 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import './App.css';
 
-const App = () => {
-  const [username, setUsername] = useState('');
+function App() {
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [message, setMessage] = useState('');
 
-  const handleLogin = () => {
-    axios.post('http://localhost:5000/login', { username, password })
-      .then(response => {
-        alert(response.data);
-      })
-      .catch(error => {
-        alert(error.response.data);
-      });
-  };
-
-  const handleRegister = () => {
-    axios.post('http://localhost:5000/register', { username, password })
-      .then(response => {
-        alert(response.data);
-      })
-      .catch(error => {
-        alert(error.response.data);
-      });
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    try {
+      const response = await axios.post('http://localhost:3001/login', { email, password });
+      setMessage(response.data.message);
+    } catch (error) {
+      setMessage('Login failed: ' + error.response.data.message);
+    }
   };
 
   return (
-    <div>
-      <h1>Login</h1>
-      <input
-        type="text"
-        placeholder="Username"
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
-      />
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
-      <button onClick={handleLogin}>Login</button>
-      <button onClick={handleRegister}>Register</button>
+    <div className="App">
+      <header className="App-header">
+        <h1>Login</h1>
+        <form onSubmit={handleSubmit}>
+          <div>
+            <label>Email:</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label>Password:</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+          <button type="submit">Login</button>
+        </form>
+        {message && <p>{message}</p>}
+      </header>
     </div>
   );
-};
+}
 
 export default App;

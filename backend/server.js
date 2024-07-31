@@ -1,61 +1,66 @@
 const express = require('express');
-const mysql = require('mysql');
 const bodyParser = require('body-parser');
-const bcrypt = require('bcrypt');
-const app = express();
+const cors = require('cors');
+const mysql = require('mysql2');
 
+const app = express();
+const port = 3001;
+
+app.use(cors());
 app.use(bodyParser.json());
 
 const db = mysql.createConnection({
-  host: 'db',
-  user: 'user',
+  host: 'database',
+  user: 'root',
   password: 'password',
-  database: 'myapp'
+  database: 'mydatabase'
 });
 
 db.connect(err => {
   if (err) {
-    console.error('Database connection failed: ' + err.stack);
+    console.error('Database connection failed:', err.stack);
     return;
   }
-  console.log('Connected to database.');
-});
+  console.log('Connected to database');
 
-db.query(`
-  CREATE TABLE IF NOT EXISTS users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(255) NOT NULL,
-    password VARCHAR(255) NOT NULL
-  )
-`);
+  // Initialize the database
+  const initDbQuery = `
+    CREATE DATABASE IF NOT EXISTS mydatabase;
+    USE mydatabase;
+    CREATE TABLE IF NOT EXISTS users (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      email VARCHAR(255) NOT NULL,
+      password VARCHAR(255) NOT NULL
+    );
+    INSERT IGNORE INTO users (email, password) VALUES ('test@example.com', 'password123');
+  `;
+
+  db.query(initDbQuery, (err, results) => {
+    if (err) {
+      console.error('Database initialization failed:', err.stack);
+      return;
+    }
+    console.log('Database initialized');
+  });
+});
 
 app.post('/login', (req, res) => {
-  const { username, password } = req.body;
-  db.query('SELECT * FROM users WHERE username = ?', [username], (err, results) => {
-    if (err) return res.status(500).send('Server error');
-    if (results.length === 0) return res.status(400).send('Invalid credentials');
-    
-    bcrypt.compare(password, results[0].password, (err, result) => {
-      if (result) {
-        res.status(200).send('Login successful');
-      } else {
-        res.status(400).send('Invalid credentials');
-      }
-    });
+  const { email, password } = req.body;
+  const query = 'SELECT * FROM users WHERE email = ? AND password = ?';
+
+  db.query(query, [email, password], (err, results) => {
+    if (err) {
+      res.status(500).json({ message: 'Internal server error' });
+      return;
+    }
+    if (results.length > 0) {
+      res.json({ message: 'Login successful!' });
+    } else {
+      res.status(401).json({ message: 'Invalid email or password' });
+    }
   });
 });
 
-app.post('/register', (req, res) => {
-  const { username, password } = req.body;
-  bcrypt.hash(password, 10, (err, hash) => {
-    if (err) return res.status(500).send('Server error');
-    db.query('INSERT INTO users (username, password) VALUES (?, ?)', [username, hash], (err) => {
-      if (err) return res.status(500).send('Server error');
-      res.status(201).send('User registered');
-    });
-  });
-});
-
-app.listen(5000, () => {
-  console.log('Server is running on port 5000');
+app.listen(port, () => {
+  console.log(`Backend listening at http://localhost:${port}`);
 });
